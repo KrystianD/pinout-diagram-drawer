@@ -1,0 +1,15 @@
+pinout: stm-db/data/STM32F103C8Tx.json
+rotate: 0
+drawing:
+    image_size_w: 700
+    image_size_h: 800
+    die_size: 6
+    die_margin: 20
+filters:
+    - or: [SWDIO, SWCLK]
+    - and:
+        - or: [USART, UART]
+        - or: [TX, RX]
+    - and: [I2C, {or: [SCL, SDA]}]
+    - or: [USB_OTG_FS_DM, USB_OTG_FS_DP]
+    - and: [TIM, CH]

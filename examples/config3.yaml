@@ -1,0 +1,10 @@
+pinout: stm-db/data/STM32F103C8Tx.json
+rotate: 3
+drawing:
+    image_size_w: 550
+    image_size_h: 600
+    die_size: 6.5
+    die_margin: 20
+filters:
+    - or: [SWDIO, SWCLK]
+    - or: [USB_OTG_FS_DM, USB_OTG_FS_DP]

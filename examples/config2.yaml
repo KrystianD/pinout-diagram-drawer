@@ -1,0 +1,11 @@
+pinout: stm-db/data/STM32F103C8Tx.json
+rotate: 0
+drawing:
+    image_size_w: 550
+    image_size_h: 600
+    die_size: 6
+    die_margin: 20
+filters:
+    - and:
+        - or: [USART, UART]
+        - or: [TX, RX]
