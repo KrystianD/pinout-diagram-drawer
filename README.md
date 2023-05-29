@@ -11,8 +11,8 @@ supported packages:
 
 ### Features
 
-* Filtering signals
-* Rotating dies
+* filtering signals using AND/OR logic,
+* rotating dies
 
 ### Motivation
 
