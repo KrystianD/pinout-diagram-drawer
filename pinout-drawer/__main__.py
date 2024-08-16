@@ -13,7 +13,8 @@ fnt9 = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 9)
 
 
 def draw_pin_text(ctx: DrawerContext, text, font, fill=(0, 0, 0)):
-    tmp = Image.new('RGBA', font.getsize(text), (255, 255, 255, 255))
+    x, y, w, h = font.getbbox(text)
+    tmp = Image.new('RGBA', (w, h), (255, 255, 255, 255))
     d = ImageDraw.Draw(tmp)
     d.text((0, 0), text, font=font, fill=fill)
     return tmp
