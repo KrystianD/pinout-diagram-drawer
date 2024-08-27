@@ -36,6 +36,7 @@ drawing:
   image_size_h: 800
   die_size: 6
   die_margin: 20
+color: true
 filters:
   - or: [SWDIO, SWCLK]
   - and:
