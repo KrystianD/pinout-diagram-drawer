@@ -1,3 +1,10 @@
+from fnmatch import fnmatch
+
+
+def filter_pin(filter_cfg, signals):
+    return fnmatch(signals, f"*{filter_cfg}*")
+
+
 def create_filter_func(filter_cfg):
     if isinstance(filter_cfg, dict):
         cond = list(filter_cfg.keys())[0]
@@ -9,7 +16,7 @@ def create_filter_func(filter_cfg):
         else:
             print(f"invalid cond {cond}")
     else:
-        return lambda signals: filter_cfg in signals
+        return lambda signals: filter_pin(filter_cfg, signals)
 
 
 def create_filter_func_array(filters_cfg):
