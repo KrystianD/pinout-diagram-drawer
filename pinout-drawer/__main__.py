@@ -9,8 +9,10 @@ from colorzero import Color, Hue
 import seaborn as sns
 
 import drawing
+import drawing_TSSOP
 import filters
 from drawer_context import DrawerContext
+import myutils
 
 fnt12 = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 12)
 fnt9 = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 9)
@@ -131,7 +133,7 @@ def main():
 
     package = mcu_data["package"]
 
-    if not package.startswith(("LQFP",)):
+    if not package.startswith(("LQFP", "TSSOP")):
         print(f"Unsupported package {package}")
         exit(1)
 
@@ -142,7 +144,10 @@ def main():
     ctx.image = Image.new("RGB", (cfg["drawing"]["image_size_w"], cfg["drawing"]["image_size_h"]), (255, 255, 255, 0))
     ctx.create_pin_images = create_pin_images
     ctx.filter_fn = filter_fn
-    drawing.draw(ctx)
+    if package.startswith("LQFP"):
+        drawing.draw(ctx)
+    if package.startswith("TSSOP"):
+        drawing_TSSOP.draw(ctx)
     ctx.image.save(args.output)
 
 

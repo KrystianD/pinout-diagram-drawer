@@ -8,6 +8,7 @@ currently supports:
 
 supported packages:
 - LQFP
+- TSSOP
 
 ### Features
 
