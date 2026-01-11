@@ -63,9 +63,9 @@ def create_pin_images(ctx: DrawerContext, pin: int):
     pin = (pin - 1) % ctx.pins_count + 1
 
     pin_data = ctx.pin_by_pos[pin]
-    pin_name = pin_data["name"]
+    pin_name = "/".join(x["name"] for x in pin_data)
 
-    is_system_pin = pin_data["type"] in ("Power", "Boot", "Reset")
+    is_system_pin = any(x["type"] in ("Power", "Boot", "Reset") for x in pin_data)
 
     # inner image
     if is_system_pin:
@@ -75,13 +75,15 @@ def create_pin_images(ctx: DrawerContext, pin: int):
 
     inner_image = draw_pin_text(ctx, text, fnt9)
 
+    all_signals = [y for x in pin_data for y in x["signals"]]
+
     # outer image
     if is_system_pin:
         text = pin_name
         fill = (255, 128, 0)
         outer_image = draw_pin_text(ctx, text, fnt12, fill=fill)
     else:
-        signals = [x for x in pin_data["signals"] if ctx.filter_fn(x)]
+        signals = [x for x in all_signals if ctx.filter_fn(x)]
 
         outer_image = Image.new('RGBA', (0, 0), (255, 255, 255, 255))
         is_first = True
@@ -102,7 +104,7 @@ def create_pin_images(ctx: DrawerContext, pin: int):
             outer_image = draw_pin_text_append(outer_image, s, fnt12, fill=fill)
             is_first = False
 
-        if any(("ADC" in x and "_IN" in x) for x in pin_data["signals"]):
+        if any(("ADC" in x and "_IN" in x) for x in all_signals):
             if use_colors:
                 fill = (200, 128, 0)
             else:
@@ -135,8 +137,8 @@ def main():
 
     ctx = DrawerContext()
     ctx.cfg = cfg
-    ctx.pins_count = len(mcu_data["pinout"])
-    ctx.pin_by_pos = {int(x["position"]): x for x in (mcu_data["pinout"])}
+    ctx.pin_by_pos = myutils.groupby(mcu_data["pinout"], key=lambda x: int(x["position"]))
+    ctx.pins_count = len(ctx.pin_by_pos)
     ctx.image = Image.new("RGB", (cfg["drawing"]["image_size_w"], cfg["drawing"]["image_size_h"]), (255, 255, 255, 0))
     ctx.create_pin_images = create_pin_images
     ctx.filter_fn = filter_fn
