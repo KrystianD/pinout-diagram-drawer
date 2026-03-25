@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 
 import yaml
-from PIL import Image, ImageDraw, ImageFont
+import drawsvg
 from colorzero import Color, Hue
 import seaborn as sns
 
@@ -14,30 +14,13 @@ import filters
 from drawer_context import DrawerContext
 import myutils
 
-fnt12 = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 12)
-fnt9 = ImageFont.truetype("/usr/share/fonts/TTF/DejaVuSans.ttf", 9)
+fnt9 = dict(font_size=9, font_family='DejaVu Sans')
+fnt12 = dict(font_size=12, font_family='DejaVu Sans')
 
 palette = sns.color_palette("tab10")
 
 
-def draw_pin_text(ctx: DrawerContext, text, font, fill=(0, 0, 0)):
-    x, y, w, h = font.getbbox(text)
-    tmp = Image.new('RGBA', (w, h), (255, 255, 255, 255))
-    d = ImageDraw.Draw(tmp)
-    d.text((0, 0), text, font=font, fill=fill)
-    return tmp
-
-
-def draw_pin_text_append(image, text, font, fill=(0, 0, 0)):
-    x, y, w, h = font.getbbox(text)
-    tmp = Image.new('RGBA', (image.size[0] + w, max(image.size[1], h)), (255, 255, 255, 255))
-    d = ImageDraw.Draw(tmp)
-    tmp.paste(im=image, box=(0, 0))
-    d.text((image.size[0], 0), text, font=font, fill=fill)
-    return tmp
-
-
-def color_to_pillow(x: Color):
+def color_to_tuple(x: Color):
     return tuple((int(y * 255)) for y in x.rgb)
 
 
@@ -75,19 +58,21 @@ def create_pin_images(ctx: DrawerContext, pin: int):
     else:
         text = str(pin) + " | " + pin_name
 
-    inner_image = draw_pin_text(ctx, text, fnt9)
+    inner_txt = drawsvg.Text('', x=0, y=0, dominant_baseline='middle', **fnt9)
+    inner_txt.append(drawsvg.TSpan(text))
 
     all_signals = [y for x in pin_data for y in x["signals"]]
+
+    outer_txt = drawsvg.Text('', x=0, y=0, dominant_baseline='middle', **fnt12)
 
     # outer image
     if is_system_pin:
         text = pin_name
         fill = (255, 128, 0)
-        outer_image = draw_pin_text(ctx, text, fnt12, fill=fill)
+        outer_txt.append(drawsvg.TSpan(text, fill=f"rgb({fill[0]},{fill[1]},{fill[2]})"))
     else:
         signals = [x for x in all_signals if ctx.filter_fn(x)]
 
-        outer_image = Image.new('RGBA', (0, 0), (255, 255, 255, 255))
         is_first = True
         for s in signals:
             if use_colors:
@@ -97,13 +82,13 @@ def create_pin_images(ctx: DrawerContext, pin: int):
                 else:
                     peripheral_base_color = Color.from_rgb(*palette[peripheral_desc.group_hash % len(palette)])
 
-                    fill = color_to_pillow(peripheral_base_color + Hue(0.05 * peripheral_desc.number))
+                    fill = color_to_tuple(peripheral_base_color + Hue(0.05 * peripheral_desc.number))
             else:
                 fill = (0, 0, 0)
 
             if not is_first:
-                outer_image = draw_pin_text_append(outer_image, " / ", fnt12, fill=(0, 0, 0))
-            outer_image = draw_pin_text_append(outer_image, s, fnt12, fill=fill)
+                outer_txt.append(drawsvg.TSpan(" / ", fill="black"))
+            outer_txt.append(drawsvg.TSpan(s, fill=f"rgb({fill[0]},{fill[1]},{fill[2]})"))
             is_first = False
 
         if any(("ADC" in x and "_IN" in x) for x in all_signals):
@@ -111,18 +96,18 @@ def create_pin_images(ctx: DrawerContext, pin: int):
                 fill = (200, 128, 0)
             else:
                 fill = (0, 0, 0)
-            outer_image = draw_pin_text_append(outer_image, " (A)", fnt12, fill=fill)
+            outer_txt.append(drawsvg.TSpan(" (A)", fill=f"rgb({fill[0]},{fill[1]},{fill[2]})"))
 
     return {
-        "inner_image": inner_image,
-        "outer_image": outer_image,
+        "inner_txt": inner_txt,
+        "outer_txt": outer_txt,
     }
 
 
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-c', '--config', default="config.yaml", type=str, metavar="PATH")
-    argparser.add_argument('-o', '--output', default="output.png", type=str, metavar="PATH")
+    argparser.add_argument('-o', '--output', default="output.svg", type=str, metavar="PATH")
     args = argparser.parse_args()
 
     cfg = yaml.load(open(args.config, "rt"), Loader=yaml.SafeLoader)
@@ -137,18 +122,21 @@ def main():
         print(f"Unsupported package {package}")
         exit(1)
 
+    d = drawsvg.Drawing(cfg["drawing"]["image_size_w"], cfg["drawing"]["image_size_h"])
+    d.append(drawsvg.Rectangle(0, 0, '100%', '100%', fill='white'))
+
     ctx = DrawerContext()
     ctx.cfg = cfg
     ctx.pin_by_pos = myutils.groupby(mcu_data["pinout"], key=lambda x: int(x["position"]))
     ctx.pins_count = len(ctx.pin_by_pos)
-    ctx.image = Image.new("RGB", (cfg["drawing"]["image_size_w"], cfg["drawing"]["image_size_h"]), (255, 255, 255, 0))
+    ctx.image = d
     ctx.create_pin_images = create_pin_images
     ctx.filter_fn = filter_fn
     if package.startswith("LQFP"):
         drawing.draw(ctx)
     if package.startswith("TSSOP"):
         drawing_TSSOP.draw(ctx)
-    ctx.image.save(args.output)
+    d.save_svg(args.output)
 
 
 main()

@@ -22,7 +22,7 @@ See [Motivation](.docs/motivation.md)
 ### Usage
 
 ```shell
-python pinout-drawer -c config.yaml -o output.png
+python pinout-drawer -c config.yaml -o output.svg
 ```
 
 ### Examples

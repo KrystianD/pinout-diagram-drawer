@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-from PIL import ImageDraw
+import drawsvg
 
 from drawer_context import DrawerContext
 
@@ -8,79 +8,67 @@ text_margin = 8
 text_margin2 = 10
 
 
-def draw_point(image, xy, fill):
-    d = ImageDraw.Draw(image)
-    w = 2
-    d.ellipse((xy[0] - w, xy[1] - w, xy[0] + w, xy[1] + w), fill=fill)
-
-
 def draw_pad(ctx: DrawerContext, xy):
-    draw_point(ctx.image, xy, fill=(0, 0, 0))
+    ctx.image.append(drawsvg.Circle(xy[0], xy[1], 2, fill='black'))
 
 
 def draw_pin_left(ctx: DrawerContext, xy, images: Dict[str, Any]):
     draw_pad(ctx, xy)
 
-    w = images["inner_image"].rotate(0, expand=True)
-    s = w.size
-    xy2 = (xy[0] + text_margin, xy[1] - s[1] // 2)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0] + text_margin},{xy[1]})')
+    z.append(images["inner_txt"])
+    ctx.image.append(z)
 
-    w = images["outer_image"].rotate(0, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] - text_margin, xy[1] - s[1] // 2)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0] - text_margin},{xy[1]})')
+    images["outer_txt"].args["text-anchor"] = 'end'
+    z.append(images["outer_txt"])
+    ctx.image.append(z)
 
 
 def draw_pin_bottom(ctx: DrawerContext, xy, images):
     draw_pad(ctx, xy)
 
-    w = images["inner_image"].rotate(90, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] // 2, xy[1] - s[1] - text_margin)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0]},{xy[1] - text_margin}) rotate(-90)')
+    z.append(images["inner_txt"])
+    ctx.image.append(z)
 
-    w = images["outer_image"].rotate(90, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] // 2, xy[1] + text_margin)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0]},{xy[1] + text_margin}) rotate(-90)')
+    images["outer_txt"].args["text-anchor"] = 'end'
+    z.append(images["outer_txt"])
+    ctx.image.append(z)
 
 
 def draw_pin_right(ctx: DrawerContext, xy, images):
     draw_pad(ctx, xy)
 
-    w = images["inner_image"].rotate(0, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] - text_margin, xy[1] - s[1] // 2)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0] - text_margin},{xy[1]})')
+    images["inner_txt"].args["text-anchor"] = 'end'
+    z.append(images["inner_txt"])
+    ctx.image.append(z)
 
-    w = images["outer_image"].rotate(0, expand=True)
-    s = w.size
-    xy2 = (xy[0] + text_margin, xy[1] - s[1] // 2)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0] + text_margin},{xy[1]})')
+    z.append(images["outer_txt"])
+    ctx.image.append(z)
 
 
 def draw_pin_top(ctx: DrawerContext, xy, images):
     draw_pad(ctx, xy)
 
-    w = images["inner_image"].rotate(90, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] // 2, xy[1] + text_margin)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0]},{xy[1] + text_margin}) rotate(-90)')
+    images["inner_txt"].args["text-anchor"] = 'end'
+    z.append(images["inner_txt"])
+    ctx.image.append(z)
 
-    w = images["outer_image"].rotate(90, expand=True)
-    s = w.size
-    xy2 = (xy[0] - s[0] // 2, xy[1] - s[1] - text_margin)
-    ctx.image.paste(im=w, box=xy2)
+    z = drawsvg.Group(transform=f'translate({xy[0]},{xy[1] - text_margin}) rotate(-90)')
+    z.append(images["outer_txt"])
+    ctx.image.append(z)
 
 
 def draw(ctx: DrawerContext):
     die_size = ctx.pins_count * ctx.cfg["drawing"]["die_size"]
 
-    d = ImageDraw.Draw(ctx.image)
-
-    center_x = ctx.image.size[0] // 2
-    center_y = ctx.image.size[1] // 2
+    center_x = ctx.image.width // 2
+    center_y = ctx.image.height // 2
     l = center_x - die_size / 2
     t = center_y - die_size / 2
     r = center_x + die_size / 2
@@ -95,7 +83,10 @@ def draw(ctx: DrawerContext):
         [l, t, r, t, r, b - die_mark_size, r - die_mark_size, b, l, b],
         [l, t, r, t, r, b, l + die_mark_size, b, l, b - die_mark_size],
     ]
-    d.polygon(die_points[rotate], outline=(0, 0, 0))
+    ctx.image.append(drawsvg.Lines(*die_points[rotate],
+                                   close=True,
+                                   fill_opacity=0,
+                                   stroke='black'))
 
     die_margin = ctx.cfg["drawing"]["die_margin"]
 
